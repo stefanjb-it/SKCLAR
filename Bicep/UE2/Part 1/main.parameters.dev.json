@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appServicePlanInstanceCount" : {
+      "value": 1
+    },
+    "appServicePlanSku": {
+      "value": {
+        "name": "F1",
+        "tier": "Free"
+      }
+    },
+    "sqlDatabaseSku": {
+      "value": {
+        "name": "Standard",
+        "tier": "Standard"
+      }
+    },
+    "sqlServerAdministratorLogin": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/c42c6aa8-3c10-40e5-a3ff-ba5843e3dda5/resourceGroups/SKCLAR1/providers/Microsoft.KeyVault/vaults/keyvaultnest832"
+        },
+        "secretName": "sqlServerAdministratorLogin"
+      }
+    },
+    "sqlServerAdministratorPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/c42c6aa8-3c10-40e5-a3ff-ba5843e3dda5/resourceGroups/SKCLAR1/providers/Microsoft.KeyVault/vaults/keyvaultnest832"
+        },
+        "secretName": "sqlServerAdministratorPassword"
+      }
+    },
+    "environmentName": {
+      "value": "dev"
+    }
+  }
+}
