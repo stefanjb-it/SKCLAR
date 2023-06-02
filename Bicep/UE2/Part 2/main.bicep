@@ -22,6 +22,8 @@ param subnets array
 ])
 param environmentName string
 
+param auditStorageAccountSkuName string
+
 @description('The name and tier of the SQL database SKU.')
 param sqlDatabaseSku object
 
@@ -40,6 +42,7 @@ module databases './modules/database.bicep' = [for location in locations: {
     sqlServerAdministratorPassword: sqlServerAdministratorPassword
     environmentName: environmentName
     sqlDatabaseSku: sqlDatabaseSku
+    auditStorageAccountSkuName: auditStorageAccountSkuName
   }
 }]
 

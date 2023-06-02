@@ -48,6 +48,9 @@
     },
     "environmentName": {
       "value": "prod"
+    },
+    "auditStorageAccountSkuName": {
+      "value" : "Standard_LRS"
     }
   }
 }

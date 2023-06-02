@@ -12,7 +12,7 @@ param sqlServerAdministratorPassword string
 ])
 param environmentName string
 
-param auditStorageAccountSkuName string = 'Standard_LRS'
+param auditStorageAccountSkuName string
 
 param sqlDatabaseSku object
 
