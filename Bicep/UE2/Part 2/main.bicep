@@ -20,7 +20,7 @@ param subnets array
   'dev'
   'prod'
 ])
-param environmentName string = 'dev'
+param environmentName string
 
 @description('The name and tier of the SQL database SKU.')
 param sqlDatabaseSku object

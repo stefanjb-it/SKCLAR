@@ -10,7 +10,7 @@ param sqlServerAdministratorPassword string
   'dev'
   'prod'
 ])
-param environmentName string = 'dev'
+param environmentName string
 
 param auditStorageAccountSkuName string = 'Standard_LRS'
 

@@ -4,7 +4,7 @@
   'test'
   'prod'
 ])
-param environmentName string = 'dev'
+param environmentName string 
 
 @description('The number of App Service plan instances.')
 @minValue(1)
