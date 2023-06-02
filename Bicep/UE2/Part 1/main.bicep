@@ -53,7 +53,7 @@ resource appServiceApp 'Microsoft.Web/sites@2022-03-01' = {
   }
 }
 
-module database './modules/databases.bicep' = {
+module database './modules/database.bicep' = {
   name: 'database'
   params: {
     sqlServerAdministratorLogin: sqlServerAdministratorLogin
