@@ -1,0 +1,120 @@
+#!/bin/bash
+echo -n "Please enter the number of virtual machines: "
+read numbOfVMs
+
+set -x
+
+#get start time
+start=$(date +%s)
+
+########## Start of variable Definition ##############
+
+#define a subscription
+subscription_id=c42c6aa8-3c10-40e5-a3ff-ba5843e3dda5
+
+#set subscription
+az account set --subscription $subscription_id  
+
+#define resource group 
+rg=CLINF-GL_Joebstl
+
+#public vNet Name
+vName=UE-3-CLI_NET
+
+#Define subnet name
+subName=UE-3-CLI-SUB
+
+#Define nsg name
+nsgName=UE-3-CLI-NSG
+
+#Define availabilityset name
+avName=UE-3-CLI-AV
+
+#Define name of vm
+vmName=UE-3-CLI-VM
+
+#Define location
+location=northeurope
+
+#Define admin name for VM
+adminName=admindeploy
+
+#Define password for admin account
+adminPw=AdminPassword123
+
+#Define array for internal ips of VMs
+ips=()
+for l in $( seq 1 $numbOfVMs)
+do
+    ips+=(10.0.0.1$l)
+    echo 10.0.0.1$l
+done
+
+#Define name for public IP address for the loadbalancer
+lbpubip=UE-3-CLI-LB-PUB
+
+#Define name for loadbalancer
+lbName=UE-3-CLI-LB
+
+#Define loadbalancer frontend name
+lbFrontName=UE-3-CLI-LB-FRONT
+
+#Define loadbalancer backend name
+lbBackName=UE-3-CLI-LB-BACK
+
+########## End of variable Definition ##############
+
+########## Start with Deployment ###################
+
+#create resource group
+
+
+#create virtual network
+az network vnet create --name $vName --resource-group $rg --address-prefix 10.0.0.0/16 --location $location
+az network vnet subnet create --name $subName --resource-group $rg --address-prefix 10.0.0.0/24 --vnet-name $vName
+
+#create NSG
+az network nsg create --name $nsgName --resource-group $rg --location $location 
+
+#create required inbound NSG rules for webapplications and remote access for windows VM's
+az network nsg rule create --name InboundWebTrafficRDP --nsg-name $nsgName --priority 100 --resource-group $rg --access Allow --direction Inbound --destination-port-ranges 80 443 3389 --protocol Tcp
+
+#create an availability set for VM's
+az vm availability-set create --name $avName --resource-group $rg --location $location
+
+#create VM's (Win2022Datacenter, Standard_B1) within the availability set within a for loop
+for i in $(seq 1 $numbOfVMs)
+do
+    az vm create --name "${vmName}-${i}" --resource-group $rg --location $location --image Win2022Datacenter --size Standard_B2s --admin-username $adminName --admin-password $adminPw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgName --availability-set $avName
+done
+
+#Extend VM's with IIS Server and a simple html file to display the name of the VM
+for k in $(seq 1 $numbOfVMs)
+do
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id RunPowerShellScript --script "powershell.exe Install-WindowsFeature -name Web-Server -IncludeManagementTools "
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id RunPowerShellScript --script "powershell.exe Remove-Item -Path C:\inetpub\wwwroot\iisstart.htm"
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id RunPowerShellScript --script "powershell.exe Add-Content -Path C:\inetpub\wwwroot\iisstart.htm -Value \$env:Computername"
+done
+
+#Create public IP address for load balancer
+az network public-ip create --name $lbpubip --resource-group $rg --location $location --sku Standard
+
+#Create standard external load balancer
+az network lb create --name $lbName --resource-group $rg --location $location --backend-pool-name $lbBackName --frontend-ip-name $lbFrontName --public-ip-address $lbpubip --sku Standard --vnet-name $vName
+
+#Create health probe
+az network lb probe create --name htprobe --lb-name $lbName --port 80 --protocol Http --resource-group $rg --path /
+
+#Create load balancer rule (Port 80, TCP)
+az network lb rule create --name InboundRuleLB --lb-name $lbName --resource-group $rg --protocol Tcp --frontend-port 80 --backend-port 80
+
+#Create backendpool for the loadbalancer. Use the internal IP address of the VMs. Hint: Use a for loop
+for j in $(seq 1 $numbOfVMs)
+do
+    az network lb address-pool address add --name "${vmName}-${j}" --lb-name $lbName --pool-name $lbBackName --resource-group $rg --ip-address ${ips[$j-1]} --vnet $vName
+done
+
+#calculate execution time
+end=$(date +%s)
+runtime=$((end-start))
+echo "The execution time was $runtime seconds"
