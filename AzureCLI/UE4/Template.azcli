@@ -1,0 +1,110 @@
+#!/bin/bash
+echo -n "Please enter the number of virtual machines: "
+read numbOfVMs
+
+set -x
+
+#get start time
+start=$(date +%s)
+
+########## Start of variable Definition ##############
+
+#define a subscription
+subscription_id=c42c6aa8-3c10-40e5-a3ff-ba5843e3dda5
+
+#set subscription
+az account set --subscription $subscription_id  
+
+#define resource group 
+rg=CLINF-GL_Joebstl
+
+#public vNet Name
+vName=UE-4-CLI_NET
+
+#Define subnet name
+subName=UE-4-CLI-SUB
+
+#Define nsg name
+nsgName=UE-4-CLI-NSG
+
+#Define availabilityset name
+avName=UE-4-CLI-AV
+
+#Define name of vm
+vmName=UE-4-CLI-VM
+
+#Define vm name string
+vmNameSTR=""
+
+#Define location
+location=northeurope
+
+#Define admin name for VM
+adminName=admindeploy
+
+#Define password for admin account
+adminPw=AdminPassword123
+
+#Define array for internal ips of VMs
+ips=()
+for l in $( seq 1 $numbOfVMs)
+do
+    ips+=(10.0.0.1$l)
+    echo 10.0.0.1$l
+done
+
+#Define name for public IP address for the application gateway
+apppubip=UE-4-CLI-APPGW-PUB
+
+#Define name for application gateway
+appgwName=UE-4-CLI-APPGW
+
+#Define subnet name for application gateway
+subNameAppGW=UE-4-CLI-APPGW-SUB
+
+########## End of variable Definition ##############
+
+########## Start with Deployment ###################
+
+#create resource group
+
+
+#create virtual network
+az network vnet create --name $vname --resource-group $rg --address-prefix 10.0.0.0/16 --location $location
+az network vnet subnet create --name $subname --resource-group $rg --address-prefix 10.0.0.0/24 --vnet-name $vname
+az network vnet subnet create --name $subnameappgw --resource-group $rg --address-prefix 10.0.1.0/24 --vnet-name $vname
+
+#create nsg
+az network nsg create --name $nsgname --resource-group $rg --location $location 
+
+#create required inbound nsg rules for webapplications and remote access for windows vm's
+az network nsg rule create --name inboundwebtrafficrdp --nsg-name $nsgname --priority 100 --resource-group $rg --access allow --direction inbound --destination-port-ranges 80 443 3389 --protocol tcp
+
+#create an availability set for vm's
+az vm availability-set create --name $avname --resource-group $rg --location $location
+
+#create vm's (win2022datacenter, standard_b1) within the availability set within a for loop
+for i in $(seq 1 $numbofvms)
+do
+    az vm create --name "${vmname}-${i}" --resource-group $rg --location $location --image win2022datacenter --size standard_b2s --admin-username $adminname --admin-password $adminpw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgname --availability-set $avname
+    vmnamestr+="${vmname}-${i} "
+done
+
+#extend vm's with iis server and a simple html file to display the name of the vm
+for k in $(seq 1 $numbofvms)
+do
+    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe install-windowsfeature -name web-server -includemanagementtools "
+    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe remove-item -path c:\inetpub\wwwroot\iisstart.htm"
+    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe add-content -path c:\inetpub\wwwroot\iisstart.htm -value \$env:computername"
+done
+
+#create public ip address for load balancer
+az network public-ip create --name $apppubip --resource-group $rg --location $location --sku standard
+
+#Create application gateway
+az network application-gateway create --name $appgwName --resource-group $rg --location $location --frontend-port 80 --priority 1 --public-ip-address $apppubip --servers $vmNameSTR --sku Standard_v2 --subnet $subNameAppGW --vnet-name $vName
+
+#calculate execution time
+end=$(date +%s)
+runtime=$((end-start))
+echo "The execution time was $runtime seconds"
