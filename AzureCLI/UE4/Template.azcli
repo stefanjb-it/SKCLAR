@@ -84,18 +84,18 @@ az network nsg rule create --name inboundwebtrafficrdp --nsg-name $nsgName --pri
 az vm availability-set create --name $avName --resource-group $rg --location $location
 
 #create vm's (win2022datacenter, standard_b1) within the availability set within a for loop
-for i in $(seq 1 $numbofvms)
+for i in $(seq 1 $numbOfVMs)
 do
-    az vm create --name "${vmname}-${i}" --resource-group $rg --location $location --image win2022datacenter --size standard_b2s --admin-username $adminName --admin-password $adminPw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgName --availability-set $avName
-    vmnamestr+="${vmname}-${i} "
+    az vm create --name "${vmName}-${i}" --resource-group $rg --location $location --image win2022datacenter --size standard_b2s --admin-username $adminName --admin-password $adminPw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgName --availability-set $avName
+    vmNameSTR+="${vmName}-${i} "
 done
 
 #extend vm's with iis server and a simple html file to display the name of the vm
-for k in $(seq 1 $numbofvms)
+for k in $(seq 1 $numbOfVMs)
 do
-    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe install-windowsfeature -name web-server -includemanagementtools "
-    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe remove-item -path c:\inetpub\wwwroot\iisstart.htm"
-    az vm run-command invoke --name "${vmname}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe add-content -path c:\inetpub\wwwroot\iisstart.htm -value \$env:computername"
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe install-windowsfeature -name web-server -includemanagementtools "
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe remove-item -path c:\inetpub\wwwroot\iisstart.htm"
+    az vm run-command invoke --name "${vmName}-${k}" --resource-group $rg --command-id runpowershellscript --script "powershell.exe add-content -path c:\inetpub\wwwroot\iisstart.htm -value \$env:computername"
 done
 
 #create public ip address for load balancer
