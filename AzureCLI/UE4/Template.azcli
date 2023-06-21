@@ -70,23 +70,23 @@ subNameAppGW=UE-4-CLI-APPGW-SUB
 
 
 #create virtual network
-az network vnet create --name $vname --resource-group $rg --address-prefix 10.0.0.0/16 --location $location
-az network vnet subnet create --name $subname --resource-group $rg --address-prefix 10.0.0.0/24 --vnet-name $vname
-az network vnet subnet create --name $subnameappgw --resource-group $rg --address-prefix 10.0.1.0/24 --vnet-name $vname
+az network vnet create --name $vName --resource-group $rg --address-prefix 10.0.0.0/16 --location $location
+az network vnet subnet create --name $subName --resource-group $rg --address-prefix 10.0.0.0/24 --vnet-name $vName
+az network vnet subnet create --name $subNameAppGW --resource-group $rg --address-prefix 10.0.1.0/24 --vnet-name $vName
 
 #create nsg
-az network nsg create --name $nsgname --resource-group $rg --location $location 
+az network nsg create --name $nsgName --resource-group $rg --location $location 
 
 #create required inbound nsg rules for webapplications and remote access for windows vm's
-az network nsg rule create --name inboundwebtrafficrdp --nsg-name $nsgname --priority 100 --resource-group $rg --access allow --direction inbound --destination-port-ranges 80 443 3389 --protocol tcp
+az network nsg rule create --name inboundwebtrafficrdp --nsg-name $nsgName --priority 100 --resource-group $rg --access allow --direction inbound --destination-port-ranges 80 443 3389 --protocol tcp
 
 #create an availability set for vm's
-az vm availability-set create --name $avname --resource-group $rg --location $location
+az vm availability-set create --name $avName --resource-group $rg --location $location
 
 #create vm's (win2022datacenter, standard_b1) within the availability set within a for loop
 for i in $(seq 1 $numbofvms)
 do
-    az vm create --name "${vmname}-${i}" --resource-group $rg --location $location --image win2022datacenter --size standard_b2s --admin-username $adminname --admin-password $adminpw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgname --availability-set $avname
+    az vm create --name "${vmname}-${i}" --resource-group $rg --location $location --image win2022datacenter --size standard_b2s --admin-username $adminName --admin-password $adminPw --private-ip-address ${ips[$i-1]} --public-ip-address "" --nsg $nsgName --availability-set $avName
     vmnamestr+="${vmname}-${i} "
 done
 
